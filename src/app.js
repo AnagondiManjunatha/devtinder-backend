@@ -11,6 +11,7 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
+// Routes
 app.use('/auth', authRouter);
 
 app.use('/user', profileRoutes);
