@@ -14,7 +14,7 @@ const connectionSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['pending', 'accepted', 'rejected'],
+        enum: ['pending', 'accepted', 'rejected','interested', 'ignored'],
         default: 'pending'
     }
 }, 
@@ -27,7 +27,7 @@ connectionSchema.pre('save', function (next) {
       const connections = this;
     console.log('pre-save hook triggered');
     if (connections.senderId.equals(connections.receiverId)) {
-        return new Error('Cannot send request to yourself--!');
+        return new Error('Cannot send request to yourself!');
     }
     // next();
 });
