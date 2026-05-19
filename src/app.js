@@ -15,6 +15,6 @@ app.use(cookieParser());
 app.use('/auth', authRouter);
 
 app.use('/user', profileRoutes);
-app.use('/mutual', connectionRoutes);
+app.use('/connections', connectionRoutes);
 
 module.exports = app;

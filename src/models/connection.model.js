@@ -23,15 +23,6 @@ const connectionSchema = new mongoose.Schema({
 
 connectionSchema.index({ senderId: 1, receiverId: 1 }, { unique: true });
 
-connectionSchema.pre('save', function (next) {
-      const connections = this;
-    console.log('pre-save hook triggered');
-    if (connections.senderId.equals(connections.receiverId)) {
-        return new Error('Cannot send request to yourself!');
-    }
-    // next();
-});
-
 const Connection = mongoose.model('ConnectionRequests', connectionSchema);
 
 module.exports = Connection;

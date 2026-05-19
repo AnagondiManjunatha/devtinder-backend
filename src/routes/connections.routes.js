@@ -2,14 +2,20 @@ const express = require('express');
 const routers = express.Router();
 
 const { userAuth } = require('../middlewares/auth.middleware');
-const   { handleConnectionRequest,handlereviewRequest, getInterestedConnections } = require('../middlewares/connections.middleware');
+const   { handleConnectionRequest,handlereviewRequest, getInterestedConnections,getPendingRequests,
+    getAcceptedConnections } = require('../middlewares/connections.middleware');
 
 
-routers.post('/connections/:status/:receiverId', userAuth, handleConnectionRequest);
+routers.post('/send/:receiverId', userAuth, handleConnectionRequest);
+routers.post('/review/:connectionId/:status', userAuth, handlereviewRequest);
+
 
 routers.get('/getConnectionslist/:senderId', userAuth, getInterestedConnections);
 
-routers.post('/review/:status/:receiverId', userAuth, handlereviewRequest);
+routers.get('/getPendingRequests', userAuth, getPendingRequests);
+
+routers.get('/getAcceptedConnections', userAuth, getAcceptedConnections);
+
 
      
 // routers.post('/:status/:requestId', userAuth, (req, res) => {

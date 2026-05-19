@@ -2,84 +2,100 @@ const Connection = require('../models/connection.model');
 const User = require('../models/user.model');
 const mongoose = require('mongoose');
 
+
 /**
- * 🔹 Send Connection Request - interested/Ignored
+ * 🔹 Send Connection Request (Interested / Ignored)
  */
 const handleConnectionRequest = async (req, res) => {
+
     try {
-        const { status, receiverId } = req.params;
-
-        const validStatuses = ['interested', 'ignored'];
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({ error: 'Invalid status parameter' });
-        }
-
-        // ✅ Validate ObjectId
-        if (!mongoose.Types.ObjectId.isValid(receiverId)) {
-            return res.status(400).json({ error: 'Invalid receiverId format' });
-        }
 
         const senderId = req.user._id;
+        const { receiverId } = req.params;
 
-        // ✅ Prevent self request
+        // Validate ObjectId
+        if (!mongoose.Types.ObjectId.isValid(receiverId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid receiverId'
+            });
+        }
+
+        // Prevent self request
         if (senderId.toString() === receiverId) {
-            return res.status(400).json({error: 'You cannot send a connection request to yourself'});
+            return res.status(400).json({
+                success: false,
+                message: 'You cannot connect with yourself'
+            });
         }
 
-        // ✅ Check receiver exists
+        // Check receiver exists
         const receiverUser = await User.findById(receiverId);
+
         if (!receiverUser) {
-            return res.status(404).json({ error: 'Receiver not found' });
+            return res.status(404).json({
+                success: false,
+                message: 'Receiver user not found'
+            });
         }
 
-        // ✅ Prevent duplicate connection
+        // Prevent duplicate request
         const existingConnection = await Connection.findOne({
             $or: [
-                { senderId, receiverId },
-                { senderId: receiverId, receiverId: senderId }
+                {
+                    senderId,
+                    receiverId
+                },
+                {
+                    senderId: receiverId,
+                    receiverId: senderId
+                }
             ]
         });
 
         if (existingConnection) {
-            return res.status(400).json({error: 'Connection already exists between users' });
+            return res.status(400).json({
+                success: false,
+                message: 'Connection already exists'
+            });
         }
 
-        // ✅ Create connection
-        const connection = new Connection({
+        // Create request
+        const connection = await Connection.create({
             senderId,
             receiverId,
-            status
+            status: 'pending'
         });
 
-        await connection.save();
-
         return res.status(201).json({
-            message: `${req.user.firstName} sent a connection request`,
+            success: true,
+            message: `${req.user.firstName} has sent a connection request`,
             data: connection
         });
 
     } catch (error) {
-        console.error(error);
+
         return res.status(500).json({
-            error: error.message || 'Internal Server Error'
+            success: false,
+            message: error.message
         });
     }
 };
 
-// intreasted 
-
-/**
- * 🔹 Review Connection Request (Accept / Reject / Ignore)
+ /**
+  * 🔹 Review Connection Request (Accept / Reject / Ignore)
  */
 const handlereviewRequest = async (req, res) => {
 
     try {
 
-        const { status, receiverId } = req.params;
+        const loggedInUserId = req.user._id;
 
-        const allowedStatus = ['accepted', 'rejected', 'ignored'];
+        const { connectionId, status } = req.params;
 
-        // Validate status parameter
+        // Allowed status
+        const allowedStatus = ['accepted', 'rejected'];
+
         if (!allowedStatus.includes(status)) {
             return res.status(400).json({
                 success: false,
@@ -87,67 +103,152 @@ const handlereviewRequest = async (req, res) => {
             });
         }
 
-        // Validate receiverId format
-        const receiverObjectId = receiverId; // Convert to ObjectId if necessary
-        if(!mongoose.Types.ObjectId.isValid(receiverObjectId)) {
+        // Validate connectionId
+        if (!mongoose.Types.ObjectId.isValid(connectionId)) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid receiverId format'
+                message: 'Invalid connectionId'
             });
         }
-     
-        // Find the connection request with status 'interested' for the given receiverId
-        const findingConnection = await Connection.findOne({
-            receiverId: receiverObjectId,
-            status: 'interested'
-        });
-        console.log('Finding connection:', findingConnection);
 
-        if (!findingConnection) {
+        // Find request only for logged-in user
+        const connection = await Connection.findOne({
+            _id: connectionId,
+            receiverId: loggedInUserId,
+            status: 'pending'
+        });
+
+        if (!connection) {
             return res.status(404).json({
                 success: false,
                 message: 'Connection request not found'
             });
         }
 
-        findingConnection.status = status;
-        const connection = await findingConnection.save();
+        // Update status
+        connection.status = status;
 
-    
-        res.status(200).json({
+        await connection.save();
+
+        return res.status(200).json({
             success: true,
             message: `Connection ${status} successfully`,
-            // data: connection
+            data: connection
         });
 
     } catch (error) {
 
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: error.message
         });
     }
 };
 
+
+
+
+
+
+
+
+
+
+
+
 const getInterestedConnections = async (req, res) => {
+
     try {
 
-        const { senderId } = req.params;
-        console.log('Fetching interested connections for senderId:', senderId);
+        const senderId = req.user._id;
 
+        // ✅ Validate senderId
+        if (!mongoose.Types.ObjectId.isValid(senderId)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid senderId'
+            });
+        }
+
+        // ✅ Fetch interested connections
         const connections = await Connection.find({
-            senderId: senderId,
+            senderId,
             status: 'interested'
         })
-        .populate('receiverId'); // fetch receiver user details
+        .populate(
+            'receiverId',
+            'firstName lastName email profilePic'
+        );
 
-        res.status(200).json({
+        return res.status(200).json({
+            success: true,
+            count: connections.length,
+            data: connections
+        });
+
+    } catch (error) {
+
+        console.error('Get Interested Connections Error:', error);
+
+        return res.status(500).json({
+            success: false,
+            message: error.message || 'Internal Server Error'
+        });
+    }
+};
+
+
+const getPendingRequests = async (req, res) => {
+
+    try {
+
+        const loggedInUserId = req.user._id;
+
+        const requests = await Connection.find({
+            receiverId: loggedInUserId,
+            status: 'pending'
+        })
+        .populate('senderId', 'firstName lastName email');
+
+        return res.status(200).json({
+            success: true,
+            count: requests.length,
+            data: requests
+        });
+
+    } catch (error) {
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+const getAcceptedConnections = async (req, res) => {
+
+    try {
+
+        const loggedInUserId = req.user._id;
+
+        const connections = await Connection.find({
+            $or: [
+                { senderId: loggedInUserId },
+                { receiverId: loggedInUserId }
+            ],
+            status: 'accepted'
+        })
+        .populate('senderId', 'firstName lastName')
+        .populate('receiverId', 'firstName lastName');
+
+        return res.status(200).json({
             success: true,
             data: connections
         });
 
     } catch (error) {
-        res.status(500).json({
+
+        return res.status(500).json({
             success: false,
             message: error.message
         });
@@ -155,8 +256,11 @@ const getInterestedConnections = async (req, res) => {
 };
 
 
+
 module.exports = {
     handleConnectionRequest,
     handlereviewRequest,
-    getInterestedConnections
+    getInterestedConnections,
+    getPendingRequests,
+    getAcceptedConnections
 };
