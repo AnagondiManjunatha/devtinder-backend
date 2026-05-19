@@ -17,5 +17,4 @@ app.use('/auth', authRouter);
 app.use('/user', profileRoutes);
 app.use('/connections', connectionRoutes);
 
-
 module.exports = app;
