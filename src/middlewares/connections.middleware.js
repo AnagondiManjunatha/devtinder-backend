@@ -38,7 +38,7 @@ const handleConnectionRequest = async (req, res) => {
                 message: 'Receiver user not found'
             });
         }
-
+// Validate status
         // Prevent duplicate request
         const existingConnection = await Connection.findOne({
             $or: [
