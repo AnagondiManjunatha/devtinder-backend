@@ -47,7 +47,12 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    optional: true
+    validate: {
+      validator: function (value) {
+        return !value || validator.isMobilePhone(value, 'any');
+      },
+      message: 'Phone number must be valid'
+    }
   },
   profilePic: {
     type: String,
@@ -60,16 +65,13 @@ const userSchema = new mongoose.Schema({
   },
   roles: {
     type: String,
-    default: 'user'
+    default: 'user',
+    enum: ['user', 'admin', 'moderator']
   },
   gender: {
     type: String,
-    validate(value) {
-      const allowedGenders = ['male', 'female', 'other'];
-      if (!allowedGenders.includes(value.toLowerCase())) {
-        throw new Error('Gender must be either "male", "female", or "other".');
-      }
-    }
+    lowercase: true,
+    enum: ['male', 'female', 'other']
   }
 
 }, { timestamps: true });
