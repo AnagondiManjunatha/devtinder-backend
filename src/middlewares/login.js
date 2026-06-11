@@ -1,7 +1,5 @@
-
 const validator = require('validator');
 const loginValidation = (req, res, next) => {
-
   const { email, password } = req.body || {};
   const errors = {};
 
@@ -13,9 +11,10 @@ const loginValidation = (req, res, next) => {
     errors.email = 'Invalid email format';
   }
 
-  if (!password) errors.password = 'Password is required';
-  else if (password.length < 6) {
-    errors.password = 'Password must be at least 6 characters long';
+  if (!password) {
+    errors.password = 'Password is required';
+  } else if (password.length < 10) {
+    errors.password = 'Password must be at least 10 characters long';
   }
 
   if (Object.keys(errors).length) {
@@ -23,5 +22,5 @@ const loginValidation = (req, res, next) => {
   }
 
   next();
-}
+};
 module.exports = { loginValidation };

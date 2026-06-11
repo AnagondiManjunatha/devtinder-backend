@@ -1,5 +1,5 @@
-const Connection = require('../models/connection.model');
-const User = require('../models/user.model');
+const Connection = require('../models/connection.js');
+const User = require('../models/user');
 const mongoose = require('mongoose');
 
 
@@ -172,8 +172,7 @@ const getInterestedConnections = async (req, res) => {
 
         // ✅ Fetch interested connections
         const connections = await Connection.find({
-            senderId,
-            status: 'interested'
+            senderId
         })
         .populate(
             'receiverId',
